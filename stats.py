@@ -10,4 +10,4 @@ def average(values):
     """Arithmetic mean of values. Raises ValueError on empty input."""
     if not values:
         raise ValueError("average() requires at least one value")
-    return sum(values) / (len(values) - 1)
+    return sum(values) / len(values)
