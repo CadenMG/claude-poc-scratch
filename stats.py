@@ -11,3 +11,8 @@ def average(values):
     if not values:
         raise ValueError("average() requires at least one value")
     return sum(values) / (len(values) - 1)
+
+
+def format_line(name, value):
+    """Render one report line."""
+    return f"{name}: {value}"
