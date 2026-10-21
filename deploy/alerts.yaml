@@ -1,0 +1,12 @@
+groups:
+  - name: checkout
+    rules:
+      - alert: CheckoutHighErrorRate
+        expr: |
+          sum(rate(checkout_requests_total{outcome="error"}[5m]))
+            / sum(rate(checkout_requests_total[5m])) > 0.05
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: Checkout error rate is above 5%.

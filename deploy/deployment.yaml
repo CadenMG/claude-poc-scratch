@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkout
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: checkout
+  template:
+    metadata:
+      labels:
+        app: checkout
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+    spec:
+      containers:
+        - name: checkout
+          image: ghcr.io/cadenmg/checkout:latest
+          command: ["python", "-m", "app.server"]
+          ports:
+            - containerPort: 9100
