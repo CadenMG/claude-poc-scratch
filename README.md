@@ -10,3 +10,7 @@ Scratch repo for the Grafana Assistant Claude cloud-agent POC.
 but returns `6.0`. The intended behavior is the arithmetic mean of all values.
 
 Run tests with `python -m pytest`.
+
+## Pizza recommendations
+
+The storefront recommends a pizza on the home page. This change tunes the recommendation copy.
