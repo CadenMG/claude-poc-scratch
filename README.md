@@ -10,3 +10,7 @@ Scratch repo for the Grafana Assistant Claude cloud-agent POC.
 but returns `6.0`. The intended behavior is the arithmetic mean of all values.
 
 Run tests with `python -m pytest`.
+
+## Contributing
+
+Open a pull request against `main`. Keep changes small.
