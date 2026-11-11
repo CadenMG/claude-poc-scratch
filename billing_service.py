@@ -7,7 +7,15 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from stats import total
-from telemetry import REQUEST_DURATION, REQUEST_ERRORS, start_metrics_server, tracer
+from telemetry import (
+    INVOICE_BALANCED,
+    PAYMENT_CALL_DURATION,
+    REFUNDS,
+    REQUEST_DURATION,
+    REQUEST_ERRORS,
+    start_metrics_server,
+    tracer,
+)
 
 PAYMENTS_URL = "https://payments.example.com/v2/refunds"
 RECONCILE_INTERVAL_SECONDS = 24 * 60 * 60
@@ -23,15 +31,22 @@ def issue_refund(invoice_id, amount):
         headers={"Content-Type": "application/json"},
         method="POST",
     )
+    url = f"{PAYMENTS_URL}?invoice={invoice_id}"
+    request.full_url = url
+    start = time.monotonic()
     with urllib.request.urlopen(request, timeout=10) as response:
+        PAYMENT_CALL_DURATION.labels(url=url, status_code=response.status).observe(
+            time.monotonic() - start
+        )
         return json.load(response)["refund_id"]
 
 
 def reconcile_invoices():
     """Nightly job: mark invoices whose line items no longer add up."""
     while True:
-        for invoice in _invoices.values():
+        for invoice_id, invoice in _invoices.items():
             invoice["balanced"] = total(invoice["lines"]) == invoice["amount"]
+            INVOICE_BALANCED.labels(invoice_id=invoice_id).set(int(invoice["balanced"]))
         time.sleep(RECONCILE_INTERVAL_SECONDS)
 
 
@@ -81,7 +96,21 @@ class BillingHandler(BaseHTTPRequestHandler):
         if invoice is None:
             self._write_json(404, {"error": "unknown invoice"})
             return
-        refund_id = issue_refund(body["invoice_id"], body["amount"])
+        try:
+            refund_id = issue_refund(body["invoice_id"], body["amount"])
+        except OSError:
+            REFUNDS.labels(
+                invoice_id=body["invoice_id"],
+                customer_email=body.get("customer_email", ""),
+                outcome="failed",
+            ).inc()
+            self._write_json(502, {"error": "payment provider unavailable"})
+            return
+        REFUNDS.labels(
+            invoice_id=body["invoice_id"],
+            customer_email=body.get("customer_email", ""),
+            outcome="issued",
+        ).inc()
         self._write_json(201, {"refund_id": refund_id})
 
 
